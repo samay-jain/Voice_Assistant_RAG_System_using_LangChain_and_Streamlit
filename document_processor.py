@@ -12,39 +12,44 @@ from langchain_community.document_loaders import (
     UnstructuredMarkdownLoader,
 )
 from langchain_community.vectorstores import FAISS
-import faiss  # FAISS library to handle saving/loading index
+import faiss  # Facebook AI Similarity Search library
 
 class DocumentProcessor:
     """
-    DocumentProcessor handles loading documents from disk, splitting them into chunks,
-    generating embeddings, and storing or retrieving them from a FAISS vector database.
+    DocumentProcessor handles the ingestion of raw documents from disk, 
+    splits them into smaller chunks, generates embeddings for those chunks,
+    and stores/retrieves them using a FAISS vector store.
     """
 
     def __init__(self):
         """
-        Initialize the document processor with a recursive text splitter and Ollama embeddings.
+        Initializes the processor with a recursive text splitter for chunking
+        and Ollama embeddings (via a local Ollama server) for vector generation.
         """
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,                  # Max characters per chunk
-            chunk_overlap=200,                # Overlap between chunks to preserve context
-            separators=["\n\n", "\n", ". ", " ", ""]
+            chunk_size=1000,                  # Target max size of each chunk
+            chunk_overlap=200,                # Amount of overlap between chunks
+            separators=["\n\n", "\n", ". ", " ", ""]  # Order of splitting priority
         )
+
+        # Embedding model via Ollama server (must be running locally)
         self.embeddings = OllamaEmbeddings(
             model="nomic-embed-text",
-            base_url="http://localhost:11434"  # Local Ollama server
+            base_url="http://localhost:11434"
         )
 
     def load_documents(self, directory: str) -> List[Document]:
         """
-        Load documents from a given directory.
-        Supports .pdf, .txt, and .md files.
+        Loads .pdf, .txt, and .md files from the specified directory using 
+        LangChain's document loaders.
 
         Args:
-            directory (str): Path to the directory containing documents.
+            directory (str): Path to the folder containing documents.
 
         Returns:
-            List[Document]: List of LangChain Document objects.
+            List[Document]: A list of LangChain Document objects.
         """
+        # Configure supported loaders by file extension
         loaders = {
             ".pdf": DirectoryLoader(directory, glob="**/*.pdf", loader_cls=PyPDFLoader),
             ".txt": DirectoryLoader(directory, glob="**/*.txt", loader_cls=TextLoader),
@@ -52,6 +57,8 @@ class DocumentProcessor:
         }
 
         documents = []
+
+        # Try loading each supported file type
         for file_type, loader in loaders.items():
             try:
                 loaded = loader.load()
@@ -64,37 +71,45 @@ class DocumentProcessor:
 
     def process_documents(self, documents: List[Document]) -> List[Document]:
         """
-        Split loaded documents into smaller chunks using a recursive strategy.
+        Splits each document into smaller overlapping chunks to improve embedding
+        quality and support better semantic retrieval.
 
         Args:
-            documents (List[Document]): List of loaded documents.
+            documents (List[Document]): Raw documents.
 
         Returns:
-            List[Document]: List of split document chunks.
+            List[Document]: Chunked documents ready for embedding.
         """
         return self.text_splitter.split_documents(documents)
 
     def create_vector_store(self, documents: List[Document], persist_directory: str) -> FAISS:
         """
-        Create or load a FAISS vector store using document embeddings.
+        Creates or loads a FAISS vector store using the chunked documents and
+        associated embeddings. Stores both the FAISS index and its metadata.
 
         Args:
-            documents (List[Document]): List of chunked documents.
-            persist_directory (str): Directory where FAISS index and metadata are stored.
+            documents (List[Document]): Pre-processed document chunks.
+            persist_directory (str): Where to save/load the FAISS index and metadata.
 
         Returns:
-            FAISS: A LangChain-compatible FAISS vector store.
+            FAISS: Vector store that can be used for semantic search.
         """
-        if os.path.exists(os.path.join(persist_directory, "index.faiss")):
-            # Load existing FAISS vector store using LangChain's built-in method
+        index_path = os.path.join(persist_directory, "index.faiss")
+
+        if os.path.exists(index_path):
+            # Load previously saved vector store
             print(f"Loading existing FAISS vector store from {persist_directory}")
-            return FAISS.load_local(persist_directory, self.embeddings, allow_dangerous_deserialization=True)
+            return FAISS.load_local(
+                persist_directory, 
+                self.embeddings, 
+                allow_dangerous_deserialization=True  # Required to unpickle safely
+            )
         else:
-            # Create new vector store
+            # Create new vector store from documents
             print(f"Creating new FAISS vector store in {persist_directory}")
             os.makedirs(persist_directory, exist_ok=True)
 
             vector_store = FAISS.from_documents(documents, embedding=self.embeddings)
-            vector_store.save_local(persist_directory)
-            return vector_store
+            vector_store.save_local(persist_directory)  # Persist index to disk
 
+            return vector_store
