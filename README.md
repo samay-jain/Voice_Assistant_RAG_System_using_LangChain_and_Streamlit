@@ -20,7 +20,13 @@
 - 🖥️ **Streamlit UI**: Clean, interactive web interface — no CLI needed.
 
 ---
+## Demonstration
+![image](https://github.com/user-attachments/assets/0ed75a54-c751-47e4-a2c0-1fe5d637c44f)
+![image](https://github.com/user-attachments/assets/d45c4579-5b77-4006-b72a-e395d867b9f7)
+![image](https://github.com/user-attachments/assets/6461935d-8896-40f8-ae73-4f89787dac94)
 
+
+---
 ## 🛠️ Tech Stack
 
 | Layer       | Technology             |
@@ -33,21 +39,23 @@
 | TTS        | ElevenLabs              |
 
 ---
-# Clone the repo and navigate into it
-git clone https://github.com/samay-jain/Voice_Assistant_RAG_System_using_LangChain_and_Streamlit
 
-# Create and activate virtual environment
-python -m venv venv && source venv/bin/activate  # On Windows use: venv\Scripts\activate
+### Clone the repo and navigate into it
+```git clone https://github.com/samay-jain/Voice_Assistant_RAG_System_using_LangChain_and_Streamlit```
 
-# Install dependencies
-pip install -r requirements.txt
+### Create and activate virtual environment
+```python -m venv venv && source venv/bin/activate  # On Windows use: venv\Scripts\activate```
 
-# Add your ElevenLabs API key in a .env file
-echo "ELEVEN_LABS_API_KEY=your_api_key_here" > .env
+### Install dependencies
+```pip install -r requirements.txt```
 
-# Pull required Ollama models
-ollama pull llama3.2 && ollama pull nomic-embed-text
+### Add your ElevenLabs API key in a .env file
+```echo "ELEVEN_LABS_API_KEY=your_api_key_here" > .env```
 
-# Run the app
-streamlit run main.py
+### Pull required Ollama models
+```ollama pull llama3.2 && ollama pull nomic-embed-text```
 
+### Run the app
+```streamlit run main.py```
+
+---
